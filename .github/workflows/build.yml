@@ -1,49 +1,21 @@
-name: Build OnePlus13 Kernel
+name: Build Kernel
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  build-kernel:
+    name: Build Kernel
+    runs-on: ubuntu-22.04
     steps:
-    - name: Checkout Kernel Source
-      uses: actions/checkout@v3
+      - name: Build
+        uses: dabao1955/kernel_build_action@main
+        with:
+          kernel-url: https://github.com/seasonbarley/android_kernel_common_oneplus_sm8750
+          kernel-branch: oneplus/sm8750_v_15.0.0_oneplus_13
+          config: vendor/kona_defconfig
+          arch: arm64
+          aosp-clang: true
+          android-version: 12
+          aosp-clang-version: r450784d
 
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y bc bison flex libssl-dev make libc6-dev libncurses5-dev \
-            crossbuild-essential-arm64 curl git unzip ccache
-
-    - name: Download AOSP Clang Toolchain
-      run: |
-        mkdir clang && cd clang
-        curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r450784d.tar.gz
-        tar -xzf clang-r450784d.tar.gz
-        echo "CLANG_PATH=$PWD" >> $GITHUB_ENV
-
-    - name: Set Build Environment
-      run: |
-        echo "KERNEL_DEFCONFIG=vendor/kona_defconfig" >> $GITHUB_ENV
-        echo "ARCH=arm64" >> $GITHUB_ENV
-        echo "CROSS_COMPILE=aarch64-linux-gnu-" >> $GITHUB_ENV
-        echo "KBUILD_BUILD_USER=github" >> $GITHUB_ENV
-        echo "KBUILD_BUILD_HOST=actions" >> $GITHUB_ENV
-
-    - name: Compile Kernel
-      run: |
-        export PATH=$CLANG_PATH/bin:$PATH
-        make O=out ARCH=arm64 $KERNEL_DEFCONFIG
-        make -j$(nproc) O=out \
-            ARCH=arm64 \
-            CC=clang \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CLANG_TRIPLE=aarch64-linux-gnu-
-
-    - name: Upload Kernel Image
-      uses: actions/upload-artifact@v3
-      with:
-        name: Image.gz-dtb
-        path: out/arch/arm64/boot/Image.gz-dtb
